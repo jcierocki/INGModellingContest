@@ -5,10 +5,9 @@ from dateutil.relativedelta import relativedelta
 
 class RollingWindow(object):
     def __init__(
-        self, dataframe, data_frequency, mask, validation_start, forecast_horizon
+        self, dataframe, data_frequency, validation_start, forecast_horizon
     ) -> None:
         self.dataframe = dataframe
-        self.mask = mask
         self.last_date = self.dataframe.index.max()
         self.data_frequency = data_frequency
         self.validation_start = validation_start

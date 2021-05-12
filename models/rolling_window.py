@@ -28,7 +28,7 @@ def main():
     rw = RollingWindow(
         df,
         "month",
-        "%Y-%m-%dT%H:%M:%SZ",
+        #"%Y-%m-%dT%H:%M:%SZ",
         datetime.strptime("2018-06-01", "%Y-%m-%d").replace(tzinfo=UTC),
         3,
     )
