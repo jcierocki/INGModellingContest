@@ -29,13 +29,12 @@ ts_train_val = ts.iloc[:TRAIN_LEN + VAL_LEN - HORIZON]
 ts_rolled = ts_train_val.rolling(window=TRAIN_LEN)
 set_num_threads(7)
 
-start = time.process_time()
+start = time.perf_counter()
 roll_forecasts = ts_rolled.apply(
     func=lambda x: SARIMAX(x, order=(2, 0, 0), seasonal_order=(1, 0, 0, 12), trend='ct').fit(method='lbfgs').forecast(steps=12)[-1],
     raw=True,
     engine='numba',
     engine_kwargs={'nopython': False, 'nogil': True, 'parallel': True}
 )
-print(time.process_time() - start)
-
-# print(roll_forecasts[275:])
+elapsed_time = time.perf_counter() - start
+print(f"Elapsed time: {elapsed_time:0.4f} seconds")
