@@ -1,0 +1,18 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pandas = "==1.2.4"
+python-dateutil = "==2.8.1"
+
+[dev-packages]
+black = "*"
+jupyterlab = "*"
+
+[pipenv]
+allow_prereleases = true
+
+[requires]
+python_version = "3.8.6"
