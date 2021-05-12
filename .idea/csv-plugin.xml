@@ -17,6 +17,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/models/rollwindow.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/models/sarima.py">
           <value>
             <Attribute>
