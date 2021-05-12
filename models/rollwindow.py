@@ -26,7 +26,8 @@ def model_metrics(y_true, y_pred):
     }
 
 
-def eval_forecast_calibrate(y, func, metric_fun, horizon, idx_start, idx_end):
+# funkcja do kalibracji i walidacji (niepotrzebne prognozy, a jedynie metryki)
+def eval_forecast_validate(y, func, metric_fun, horizon, idx_start, idx_end):
     y_train = y[idx_start:idx_end]
     y_val = y[idx_end:idx_end+horizon]
 
@@ -35,6 +36,7 @@ def eval_forecast_calibrate(y, func, metric_fun, horizon, idx_start, idx_end):
     return metric_fun(y_val, y_pred)
 
 
+# funkcja do końcowego prognozowania
 def eval_forecast(y, func, horizon, idx_start, idx_end):
     y_train = y[idx_start:idx_end]
     y_val = y[idx_end:idx_end + horizon]
@@ -45,6 +47,7 @@ def eval_forecast(y, func, horizon, idx_start, idx_end):
     return {'metrics': metrics, 'forecast': y_pred}
 
 
+# funkcja do kalibracji i walidacji (niepotrzebne prognozy, a jedynie metryki)
 def rolling_window(y, func, window, horizon, num_threads=7):
     n_steps = len(y) - window - horizon
     idx_start = np.arange(window)
@@ -52,7 +55,7 @@ def rolling_window(y, func, window, horizon, num_threads=7):
 
     with Pool(num_threads) as pool:
         forecasts = pool.map(
-            lambda idx_range: eval_forecast_calibrate(y, func, mean_squared_error, horizon, *idx_range),
+            lambda idx_range: eval_forecast_validate(y, func, mean_squared_error, horizon, *idx_range),
             zip(idx_start[:n_steps], idx_end[:n_steps])
         )
         output = np.sum([x for x in forecasts])
