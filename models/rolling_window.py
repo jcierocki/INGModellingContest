@@ -6,7 +6,7 @@ import pandas as pd
 import multiprocessing as mp
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from pytz import UTC
+
 
 from RollingWindow import RollingWindow
 
@@ -24,12 +24,11 @@ def example_function(train, test):
 def main():
     data_path = "data/raw_data.csv"
     df = pd.read_csv(data_path)
-    df.index = pd.to_datetime(df["DATE"])
+    df.index = df["DATE"].astype('datetime64[ns]')
     rw = RollingWindow(
         df,
         "month",
-        #"%Y-%m-%dT%H:%M:%SZ",
-        datetime.strptime("2018-06-01", "%Y-%m-%d").replace(tzinfo=UTC),
+        datetime.strptime("2018-06-01", "%Y-%m-%d"),
         3,
     )
     with mp.Pool(mp.cpu_count() - 2) as p:

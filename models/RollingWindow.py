@@ -5,14 +5,14 @@ from dateutil.relativedelta import relativedelta
 
 class RollingWindow(object):
     def __init__(
-        self, dataframe, data_frequency, validation_start, forecast_horizon
+        self, dataframe, data_frequency, train_end, forecast_horizon
     ) -> None:
         self.dataframe = dataframe
         self.last_date = self.dataframe.index.max()
         self.data_frequency = data_frequency
-        self.validation_start = validation_start
+        self.train_end = train_end
         self.forecast_horizon = forecast_horizon
-        self.cursor = validation_start
+        self.cursor = train_end
 
     def __next__(self):
         if self.data_frequency == "month":
@@ -43,5 +43,5 @@ class RollingWindow(object):
                 return train_data, test_data
 
     def __iter__(self):
-        self.cursor = self.validation_start
+        self.cursor = self.train_end
         return self
