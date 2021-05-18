@@ -15,6 +15,7 @@ neuralprophet = "*"
 tbats = "*"
 hyperopt = "*"
 jupyter = "*"
+plotly = "*"
 
 [dev-packages]
 black = "*"

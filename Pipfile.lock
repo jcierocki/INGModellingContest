@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "9e3b32ce71b657c8b67defad088b66b0d26ac9040925ce194660cacd32be9aed"
+            "sha256": "5684b6b0560cf79287453c6c57c4ee045a109480b54d3cd622f9e95a6bb465d0"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -747,6 +747,14 @@
             "markers": "python_version >= '3.6'",
             "version": "==8.2.0"
         },
+        "plotly": {
+            "hashes": [
+                "sha256:7d8aaeed392e82fb8e0e48899f2d3d957b12327f9d38cdd5802bc574a8a39d91",
+                "sha256:d68fc15fcb49f88db27ab3e0c87110943e65fee02a47f33a8590f541b3042461"
+            ],
+            "index": "pypi",
+            "version": "==4.14.3"
+        },
         "pmdarima": {
             "hashes": [
                 "sha256:1ec4db6314acdc9480456cc898e63f7da198b356531fee07b06d10a878bc5d38",
@@ -924,6 +932,12 @@
                 "sha256:fa0b8363b363e89b2a6f49eddc162a04c0699ae95e109a6be3bb145a913190ea"
             ],
             "version": "==1.9.0"
+        },
+        "retrying": {
+            "hashes": [
+                "sha256:08c039560a6da2fe4f2c426d0766e284d3b736e355f8dd24b37367b0bb41973b"
+            ],
+            "version": "==1.3.3"
         },
         "scikit-learn": {
             "hashes": [
