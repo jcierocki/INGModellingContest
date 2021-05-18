@@ -12,6 +12,8 @@ from model_utils import prophet, neural_prophet
 from stl_utils import stl_ets
 from hyperopt import fmin, tpe, space_eval, hp
 from hyperopt.pyll.base import scope
+from statsmodels.tsa.seasonal import STL
+import matplotlib.pyplot as plt
 
 
 def main():
@@ -54,8 +56,17 @@ def main():
     }
 
     best = fmin(objective, space, algo=tpe.suggest, max_evals=200)
+    best_vals = space_eval(space, best)
 
-    print(best)
+    print(best_vals)
+
+    stl_res_default = STL(dataframe["Hard coal consumption per capita [tones]"], period=12, robust=True).fit()
+    stl_res_best = STL(dataframe["Hard coal consumption per capita [tones]"], period=12, robust=True, **best_vals).fit()
+
+    plt.figure()
+    # stl_res_default.plot()
+    stl_res_best.plot()
+    plt.show()
 
 
 if __name__ == "__main__":
