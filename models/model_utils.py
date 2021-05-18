@@ -90,7 +90,7 @@ def prophet(train, val, col="org"):
 
     future = m.make_future_dataframe(periods=val_data.shape[0], freq="M")
     forecast = m.predict(future).tail(val_data.shape[0])["yhat"].values
-    return (evaluate(val_data["y"].values, forecast), forecast)
+    return evaluate(val_data["y"].values, forecast), forecast
 
 
 def neural_prophet(train, val, col="org"):
@@ -109,7 +109,7 @@ def neural_prophet(train, val, col="org"):
     m.fit(train_data, freq="M")
     future = m.make_future_dataframe(train_data, periods=val_data.shape[0])
     forecast = m.predict(future)["yhat1"].values
-    return (evaluate(val_data["y"].values, forecast), forecast)
+    return evaluate(val_data["y"].values, forecast), forecast
 
 
 def tbats(train, val, col="org"):
@@ -120,8 +120,8 @@ def tbats(train, val, col="org"):
 
     fitted_model = estimator.fit(train_data.values)
 
-    forecast = fitted_model.forecast(steps=HOR)
-    return (evaluate(val_data, forecast), forecast)
+    forecast = fitted_model.forecast(steps=val_data.shape[0])
+    return evaluate(val_data, forecast), forecast
 
 
 def sarima(
@@ -150,11 +150,11 @@ def sarima(
     )
     res = mod.fit()
 
-    forecast = res.forecast(steps=HOR)
+    forecast = res.forecast(steps=val_data.shape[0])
     if not future:
-        return (evaluate(val_data, forecast), forecast)
+        return evaluate(val_data, forecast), forecast
     else:
-        return (evaluate(forecast, forecast), forecast)
+        return evaluate(forecast, forecast), forecast
 
 
 def ets(train, val, col="org", trend="mul", seasonal="mul", use_boxcox=False):
@@ -172,5 +172,5 @@ def ets(train, val, col="org", trend="mul", seasonal="mul", use_boxcox=False):
     )
     res = mod.fit()
 
-    forecast = res.forecast(steps=HOR) - epsilon
-    return (evaluate(val_data, forecast), forecast)
+    forecast = res.forecast(steps=val_data.shape[0]) - epsilon
+    return evaluate(val_data, forecast), forecast

@@ -13,6 +13,8 @@ statsmodels = "*"
 fbprophet = "*"
 neuralprophet = "*"
 tbats = "*"
+hyperopt = "*"
+jupyter = "*"
 
 [dev-packages]
 black = "*"
