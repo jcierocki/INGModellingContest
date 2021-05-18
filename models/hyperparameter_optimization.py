@@ -1,19 +1,15 @@
 import sys
 
-# sys.path.append("..")
+sys.path.append("..")
 
 import fbprophet
 
 from datetime import datetime
 import pandas as pd
 import numpy as np
-from hyperopt_utils import single_experiment
-from model_utils import prophet, neural_prophet
-from stl_utils import stl_ets
+from hyperopt_utils import single_experiment_hyperopt
+from model_utils import prophet, neural_prophet, sarima
 from hyperopt import fmin, tpe, space_eval, hp
-from hyperopt.pyll.base import scope
-from statsmodels.tsa.seasonal import STL
-import matplotlib.pyplot as plt
 
 
 def main():
@@ -22,51 +18,28 @@ def main():
     dataframe.index = dataframe["DATE"].astype("datetime64[ns]")
     dataframe = dataframe.iloc[0:306, :]
 
-    out = single_experiment(
-        dataframe,
-        "month",
-        datetime.strptime("2017-12-01", "%Y-%m-%d"),
-        "Hard coal consumption per capita [tones]",
-        24,
-        "mae",
-        stl_ets
-    )
-
-    print(out)
-
-    def objective(args):
-        return single_experiment(
-            dataframe,
-            "month",
-            datetime.strptime("2017-12-01", "%Y-%m-%d"),
-            "Hard coal consumption per capita [tones]",
-            24,
-            "mae",
-            stl_ets,
-            **args
-        )
-
     space = {
-        'seasonal': hp.choice('seasonal', [i for i in range(7, 16) if i % 2 != 0]),
-        'trend': hp.choice('trend', [i for i in range(12, 26) if i % 2 != 0]),
-        'low_pass': hp.choice('low_pass', [i for i in range(12, 16) if i % 2 != 0]),
-        'seasonal_deg': hp.choice('seasonal_deg', [0, 1]),
-        'trend_deg': hp.choice('trend_deg', [0, 1]),
-        'low_pass_deg': hp.choice('low_pass_deg', [0, 1])
+        "p": hp.choice("p", [0, 1, 2]),
+        "d": hp.choice("d", [0, 1, 2]),
+        "q": hp.choice("q", [0, 1, 2, 3]),
+        "s": hp.choice("s", [2, 3]),
+        "dataframe": hp.choice("dataframe", [dataframe]),
+        "frequency": hp.choice("frequency", ["month"]),
+        "train_end": hp.choice(
+            "train_end", [datetime.strptime("2018-12-01", "%Y-%m-%d")]
+        ),
+        "forecast_column": hp.choice(
+            "forecast_column", ["Hard coal consumption per capita [tones]"]
+        ),
+        "forceast_horizon": hp.choice("forceast_horizon", [6]),
+        "forecast_metric": hp.choice("forecast_metric", ["mae"]),
+        "forecast_function": hp.choice("forecast_functions", [sarima]),
     }
 
-    best = fmin(objective, space, algo=tpe.suggest, max_evals=200)
+    best = fmin(single_experiment_hyperopt, space, algo=tpe.suggest, max_evals=5)
     best_vals = space_eval(space, best)
-
+    print(best)
     print(best_vals)
-
-    stl_res_default = STL(dataframe["Hard coal consumption per capita [tones]"], period=12, robust=True).fit()
-    stl_res_best = STL(dataframe["Hard coal consumption per capita [tones]"], period=12, robust=True, **best_vals).fit()
-
-    plt.figure()
-    # stl_res_default.plot()
-    stl_res_best.plot()
-    plt.show()
 
 
 if __name__ == "__main__":

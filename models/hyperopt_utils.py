@@ -3,6 +3,10 @@ import numpy as np
 from RollingWindow import RollingWindow
 
 
+def single_experiment_hyperopt(par):
+    return single_experiment(**par)
+
+
 def call_function_with_args_and_kwargs(f, args, kwargs):
     return f(*args, **kwargs)
 

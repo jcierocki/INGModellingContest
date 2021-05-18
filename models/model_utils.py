@@ -19,10 +19,6 @@ from statsmodels.tsa.arima.api import ARIMA
 import logging
 
 
-# logg = logging.getLogger(__name__)
-# fh = logging.FileHandler('logs.log')
-# logg.addHandler(fh)
-
 logger = logging.getLogger("fbprophet")
 logger.propagate = False
 
@@ -149,7 +145,7 @@ def sarima(
         use_boxcox=use_boxcox,
         initialization_method="estimated",
     )
-    res = mod.fit()
+    res = mod.fit(method="powell", maxiter=1000)
 
     forecast = res.forecast(steps=val_data.shape[0])
     if not future:
