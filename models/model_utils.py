@@ -11,6 +11,8 @@ from statsmodels.tsa.exponential_smoothing.ets import ETSModel
 # from darts.metrics.metrics import mae, mase, mape, smape, rmse
 # from darts.models.exponential_smoothing import ExponentialSmoothing
 from tbats import TBATS
+from statsmodels.tsa.vector_ar.var_model import VAR
+from arch import arch_model
 
 # logg = logging.getLogger(__name__)
 # fh = logging.FileHandler('logs.log')
@@ -227,4 +229,42 @@ def ets(
     res = mod.fit()
 
     forecast = res.forecast(steps=val_data.shape[0]) - epsilon
+    return eval_fun(val_data, forecast), forecast
+
+
+def var(train, val, col, exog_col=None, eval_fun=evaluate, freq='M', max_lags=None, trend='c'):
+    colnames = col + exog_col
+
+    train_data = train[colnames].copy()
+    val_data = val[colnames].copy()
+
+    # s = freq_convert(freq)
+
+    mod = VAR(endog=train_data, freq=freq)  # TODO check freq arg format
+    res = mod.fit(maxlags=max_lags, trend=trend)
+
+    forecast = res.forecast(steps=val_data.shape[0], y=train_data)  # TODO check if y arg filled properly
+    return eval_fun(val_data, forecast), forecast
+
+
+def garch(train, val, col, exog_col=None, eval_fun=evaluate, freq='M', p=1, q=1, dist="Normal"):
+    train_data = train[col].copy()
+    train_data_exog = train[exog_col].copy()
+    val_data = val[col].copy()
+
+    mod = arch_model(
+        y=train_data,
+        # x=train_data_exog,  # TODO include exog regressors
+        mean="Constant",
+        lags=0,
+        vol="Garch",
+        p=p,
+        o=0,
+        q=q,
+        power=2.0,
+        dist=dist
+    )
+    res = mod.fit(options={'maxiter': 1000})
+
+    forecast = res.forecast(horizon=val_data.shape[0])
     return eval_fun(val_data, forecast), forecast

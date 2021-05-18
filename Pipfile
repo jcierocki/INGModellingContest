@@ -19,6 +19,7 @@ darts = "==0.7.0"
 neuralprophet = "*"
 torch = "==1.8.1"
 grpcio = "==1.37.1"
+arch = "*"
 
 [dev-packages]
 black = "*"
