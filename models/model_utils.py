@@ -1,23 +1,16 @@
-import pandas as pd
-import itertools
-import matplotlib.pyplot as plt
-from statsmodels.tsa.holtwinters import SimpleExpSmoothing, ExponentialSmoothing
-from fbprophet import Prophet
-from neuralprophet import NeuralProphet
-from tbats import TBATS, BATS
-
-import numpy as np
-import statsmodels.api as sm
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from statsmodels.tsa.stattools import adfuller, kpss, bds
-from statsmodels.tsa.seasonal import seasonal_decompose, STL
-from scipy.special import boxcox, inv_boxcox
-from statsmodels.stats.diagnostic import acorr_ljungbox
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
-from statsmodels.tsa.forecasting.stl import STLForecast
-from statsmodels.tsa.arima.api import ARIMA
 import logging
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+from fbprophet import Prophet
+from neuralprophet import NeuralProphet
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from statsmodels.tsa.exponential_smoothing.ets import ETSModel
+# from darts.metrics.metrics import mae, mase, mape, smape, rmse
+# from darts.models.exponential_smoothing import ExponentialSmoothing
+from tbats import TBATS
 
 # logg = logging.getLogger(__name__)
 # fh = logging.FileHandler('logs.log')
@@ -56,9 +49,9 @@ def mape(y_true, y_pred):
 
 def smape(y_true, y_pred):
     return (
-        100
-        / len(y_true)
-        * np.sum(2 * np.abs(y_pred - y_true) / (0.01 + np.abs(y_true) + np.abs(y_pred)))
+            100
+            / len(y_true)
+            * np.sum(2 * np.abs(y_pred - y_true) / (0.01 + np.abs(y_true) + np.abs(y_pred)))
     )
 
 
@@ -74,104 +67,164 @@ def evaluate(y_true, y_pred):
     return scores
 
 
-def prophet(train, val, col="org"):
-    train_data = pd.DataFrame()
-    train_data["y"] = train[col].copy()
-    train_data["ds"] = train_data.index
-    train_data.columns = ["y", "ds"]
+def evaluate_calibration(y_true, y_pred):
+    return {
+        'mae': mean_absolute_error(y_true, y_pred),
+        'rmse': mean_squared_error(y_true, y_pred)
+    }
 
-    val_data = pd.DataFrame()
-    val_data["y"] = val[col].copy()
+
+def freq_convert(freq_str):
+    if freq_str == 'M':
+        return 12
+    elif freq_str == 'W':
+        return 7
+    elif freq_str == 'D':
+        return None  # TODO check it
+    else:
+        raise AttributeError
+
+
+def prepare_data_prophet(train, val, col, exog_col=None):
+    colnames = col + exog_col
+
+    train_data = train[colnames].copy()
+    train_data["ds"] = train_data.index
+    train_data = train_data.rename(columns={col: 'y'})
+
+    val_data = val[colnames].copy()
     val_data["ds"] = val_data.index
-    val_data.columns = ["y", "ds"]
+    val_data = val_data.rename(columns={col: 'y'})
+
+    return train_data, val_data
+
+
+def prophet(train, val, col, exog_col=None, freq='M', eval_fun=evaluate):
+    train_data, val_data = prepare_data_prophet(train, val, col)
 
     m = Prophet()
+    if exog_col is not None:
+        for c in exog_col:
+            m.add_regressor(name=c)
+
     m.fit(train_data)
 
-    future = m.make_future_dataframe(periods=val_data.shape[0], freq="M")
+    future = m.make_future_dataframe(periods=val_data.shape[0], freq=freq)
     forecast = m.predict(future).tail(val_data.shape[0])["yhat"].values
-    return evaluate(val_data["y"].values, forecast), forecast
+    return eval_fun(val_data["y"].values, forecast), forecast
 
 
-def neural_prophet(train, val, col="org"):
-    train_data = pd.DataFrame()
-    train_data["y"] = train[col].copy()
-
-    train_data["ds"] = train_data.index
-    train_data.columns = ["y", "ds"]
-
-    val_data = pd.DataFrame()
-    val_data["y"] = val[col].copy()
-    val_data["ds"] = val_data.index
-    val_data.columns = ["y", "ds"]
+def neural_prophet(train, val, col, exog_col=None, freq='M', eval_fun=evaluate):
+    train_data, val_data = prepare_data_prophet(train, val, col)
 
     m = NeuralProphet()
-    m.fit(train_data, freq="M")
+    if exog_col is not None:
+        for c in exog_col:
+            m.add_lagged_regressor(name=c)
+
+    m.fit(train_data, freq=freq)
+
     future = m.make_future_dataframe(train_data, periods=val_data.shape[0])
     forecast = m.predict(future)["yhat1"].values
-    return evaluate(val_data["y"].values, forecast), forecast
+    return eval_fun(val_data["y"].values, forecast), forecast
 
 
-def tbats(train, val, col="org"):
+def tbats(
+        train,
+        val,
+        col="org",
+        exog_col=None,
+        freq='M',
+        eval_fun=evaluate,
+        use_box_cox=False,
+        use_trend=True,
+        use_damped_trend=False,
+        use_arma_errors=True
+):
     train_data = train[col].copy()
     val_data = val[col].copy()
 
-    estimator = TBATS(seasonal_periods=[12, 5])
+    seasonal_periods = freq_convert(freq)
+
+    estimator = TBATS(
+        seasonal_periods=seasonal_periods,
+        use_box_cox=use_box_cox,
+        use_trend=use_trend,
+        use_damped_trend=use_damped_trend,
+        use_arma_errors=use_arma_errors
+    )
 
     fitted_model = estimator.fit(train_data.values)
 
     forecast = fitted_model.forecast(steps=val_data.shape[0])
-    return evaluate(val_data, forecast), forecast
+    return eval_fun(val_data, forecast), forecast
 
 
-def sarima(
-    train,
-    val,
-    col="org",
-    future=False,
-    p=2,
-    d=1,
-    q=2,
-    trend="c",
-    P=0,
-    D=0,
-    Q=0,
-    s=12,
-    use_boxcox=True,
+def sarimax(
+        train,
+        val,
+        col="org",
+        exog_col=None,
+        eval_fun=evaluate,
+        p=2,
+        d=1,
+        q=2,
+        trend="c",
+        P=0,
+        D=0,
+        Q=0,
+        freq='M',
+        use_boxcox=True,
 ):
     train_data = train[col].copy()
+    train_data_exog = train[exog_col].copy()
     val_data = val[col].copy()
+
+    s = freq_convert(freq)
+
     mod = sm.tsa.statespace.SARIMAX(
-        train_data,
+        endog=train_data,
+        exog=train_data_exog,  # TODO check if numpy needed
         order=(p, d, q),
         seasonal_order=(P, D, Q, s),
         trend=trend,
         use_boxcox=use_boxcox,
         initialization_method="estimated",
     )
-    res = mod.fit()
+    res = mod.fit(method='powell', maxiter=1000)
 
     forecast = res.forecast(steps=val_data.shape[0])
-    if not future:
-        return evaluate(val_data, forecast), forecast
-    else:
-        return evaluate(forecast, forecast), forecast
+    return eval_fun(val_data, forecast), forecast
 
 
-def ets(train, val, col="org", trend="mul", seasonal="mul", use_boxcox=False):
-    epsilon = 0.001
+def ets(
+        train,
+        val,
+        col="org",
+        exog_col=None,
+        eval_fun=evaluate,
+        freq='M',
+        error='add',
+        trend='add',
+        damped_trend=False,
+        seasonal=None,
+        epsilon=0
+):
     train_data = train[col].copy() + epsilon
     val_data = val[col].copy() + epsilon
 
-    mod = ExponentialSmoothing(
+    seasonal_periods = freq_convert(freq)
+
+    mod = ETSModel(
         train_data,
-        seasonal_periods=12,
+        error=error,
         trend=trend,
+        damped_trend=damped_trend,
         seasonal=seasonal,
-        use_boxcox=use_boxcox,
+        seasonal_periods=seasonal_periods,
         initialization_method="estimated",
     )
     res = mod.fit()
 
     forecast = res.forecast(steps=val_data.shape[0]) - epsilon
-    return evaluate(val_data, forecast), forecast
+    return eval_fun(val_data, forecast), forecast
