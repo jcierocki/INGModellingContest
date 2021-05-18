@@ -145,6 +145,7 @@ def sarima(
         train_data,
         order=(p, d, q),
         seasonal_order=(P, D, Q, s),
+        trend=trend,
         use_boxcox=use_boxcox,
         initialization_method="estimated",
     )
@@ -158,7 +159,7 @@ def sarima(
 
 
 def ets(train, val, col="org", trend="mul", seasonal="mul", use_boxcox=False):
-    epsilon = 2
+    epsilon = 0.001
     train_data = train[col].copy() + epsilon
     val_data = val[col].copy() + epsilon
 
