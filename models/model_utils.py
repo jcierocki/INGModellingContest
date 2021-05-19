@@ -92,13 +92,11 @@ def prepare_data_prophet(train, val, col, exog_col=None):
     if exog_col is not None:
         colnames += exog_col
 
-    print(colnames)
-
     train_data = train[colnames].copy().rename(columns={col: 'y'})
-    train_data["ds"] = train_data.index
+    train_data["ds"] = train.index
 
     val_data = val[colnames].copy().rename(columns={col: 'y'})
-    val_data["ds"] = val_data.index
+    val_data["ds"] = val.index
 
     return train_data, val_data
 
@@ -125,7 +123,11 @@ def prophet(train, val, col, exog_col=None, freq='M', eval_fun=evaluate):
     future = m.make_future_dataframe(periods=val_data.shape[0], freq=freq)
     if exog_col is not None:
         for c in exog_col:
-            future[c] = val_data[c]
+            future[c] = np.concatenate(
+                (train_data[c].to_numpy(), val_data[c].to_numpy())
+            )
+
+    # return None, future
 
     forecast = m.predict(future).tail(val_data.shape[0])["yhat"].values
     return eval_fun(val_data["y"].values, forecast), forecast
