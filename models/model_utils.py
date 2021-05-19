@@ -88,30 +88,32 @@ def freq_convert(freq_str):
 
 
 def prepare_data_prophet(train, val, col, exog_col=None):
-    colnames = col + exog_col
+    colnames = [col]
+    if exog_col is not None:
+        colnames += exog_col
 
-    train_data = train[colnames].copy()
+    print(colnames)
+
+    train_data = train[colnames].copy().rename(columns={col: 'y'})
     train_data["ds"] = train_data.index
-    train_data = train_data.rename(columns={col: 'y'})
 
-    val_data = val[colnames].copy()
+    val_data = val[colnames].copy().rename(columns={col: 'y'})
     val_data["ds"] = val_data.index
-    val_data = val_data.rename(columns={col: 'y'})
 
     return train_data, val_data
 
 
-def split_exog(df, cols, horizon):
-    if cols is not None:
-        exog_data = df[cols].copy()
-        split_idx = exog_data.shape[0] - horizon
-        return exog_data.iloc[:split_idx, :], exog_data.iloc[split_idx:, :]
-    else:
-        return None, None
+# def split_exog(df, cols, horizon):
+#     if cols is not None:
+#         exog_data = df[cols].copy()
+#         split_idx = exog_data.shape[0] - horizon
+#         return exog_data.iloc[:split_idx, :], exog_data.iloc[split_idx:, :]
+#     else:
+#         return None, None
 
 
 def prophet(train, val, col, exog_col=None, freq='M', eval_fun=evaluate):
-    train_data, val_data = prepare_data_prophet(train, val, col)
+    train_data, val_data = prepare_data_prophet(train, val, col, exog_col)
 
     m = Prophet()
     if exog_col is not None:
@@ -121,6 +123,10 @@ def prophet(train, val, col, exog_col=None, freq='M', eval_fun=evaluate):
     m.fit(train_data)
 
     future = m.make_future_dataframe(periods=val_data.shape[0], freq=freq)
+    if exog_col is not None:
+        for c in exog_col:
+            future[c] = val_data[c]
+
     forecast = m.predict(future).tail(val_data.shape[0])["yhat"].values
     return eval_fun(val_data["y"].values, forecast), forecast
 
@@ -136,6 +142,10 @@ def neural_prophet(train, val, col, exog_col=None, freq='M', eval_fun=evaluate):
     m.fit(train_data, freq=freq)
 
     future = m.make_future_dataframe(train_data, periods=val_data.shape[0])
+    if exog_col is not None:
+        for c in exog_col:
+            future[c] = val_data[c]
+
     forecast = m.predict(future)["yhat1"].values
     return eval_fun(val_data["y"].values, forecast), forecast
 
@@ -199,7 +209,7 @@ def sarimax(
     s = freq_convert(freq)
 
     mod = sm.tsa.statespace.SARIMAX(
-        endog=train_data,
+        endog=train_data[col],
         exog=xreg,
         order=(p, d, q),
         seasonal_order=(P, D, Q, s),
@@ -210,7 +220,7 @@ def sarimax(
     res = mod.fit(method='powell', maxiter=1000)
 
     forecast = res.forecast(steps=val_data.shape[0], exog=xreg_fcst)
-    return eval_fun(val_data, forecast), forecast
+    return eval_fun(val_data[col], forecast), forecast
 
 
 def ets(
@@ -290,4 +300,4 @@ def garch(train, val, col, exog_col=None, eval_fun=evaluate, freq='M', ar_lag=2,
     forecast = pd.Series(forecast_arch.mean.iloc[-1, :])
     forecast.index = val_data.index
 
-    return eval_fun(val_data, forecast), forecast
+    return eval_fun(val_data[col], forecast), forecast
