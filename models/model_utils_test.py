@@ -15,20 +15,10 @@ df_val = df.iloc[split_idx:, :]
 
 print(df.head())
 
-metric, fcst = garch(
-# t1,t2,t3,t4 = sarimax(
+metric_garch, fcst_garch = garch(
     train=df_train,
     val=df_val,
     col="consumption",
     exog_col=["exog1", "exog2"]
 )
-
-# print(fcst.mean)
-
-# print(t1.head())
-# print(t2.head())
-# print(t3.head())
-# print(t4.head())
-# print(t1.tail())
-# print(t2.head())
 

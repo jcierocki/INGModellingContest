@@ -44,16 +44,16 @@ def plot_prediction(train, val, preds, title="", future=False):
     plt.title(title)
 
 
-def mape(y_true, y_pred):
+def mape(y_true, y_pred, eps=.001):
     y_true, y_pred = np.array(y_true), np.array(y_pred)
-    return np.mean(np.abs((y_true - y_pred) / (y_true + 0.01))) * 100
+    return np.mean(np.abs((y_true - y_pred) / (y_true + eps))) * 100
 
 
-def smape(y_true, y_pred):
+def smape(y_true, y_pred, eps=.001):
     return (
             100
             / len(y_true)
-            * np.sum(2 * np.abs(y_pred - y_true) / (0.01 + np.abs(y_true) + np.abs(y_pred)))
+            * np.sum(2 * np.abs(y_pred - y_true) / (eps + np.abs(y_true) + np.abs(y_pred)))
     )
 
 
@@ -200,7 +200,7 @@ def sarimax(
 
     mod = sm.tsa.statespace.SARIMAX(
         endog=train_data,
-        exog=train_data_exog,  # TODO check if numpy needed
+        exog=train_data_exog,
         order=(p, d, q),
         seasonal_order=(P, D, Q, s),
         trend=trend,
@@ -284,7 +284,7 @@ def garch(train, val, col, exog_col=None, eval_fun=evaluate, freq='M', ar_lag=2,
         dist=dist,
         rescale=True
     )
-    res = mod.fit(options={'maxiter': 1000})
+    res = mod.fit(options={'maxiter': 1000}, disp='off')
 
     forecast_arch = res.forecast(horizon=horizon, x=forecast_data_exog.to_dict(orient='list'), reindex=True)
     forecast = pd.Series(forecast_arch.mean.iloc[-1, :])
