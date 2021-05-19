@@ -12,14 +12,16 @@ def call_function_with_args_and_kwargs(f, args, kwargs):
 
 
 def single_experiment(
-    dataframe,
-    frequency,
-    train_end,
-    forecast_column,
-    forceast_horizon,
-    forecast_metric,
-    forecast_function,
-    **kwargs
+        dataframe,
+        frequency,
+        train_end,
+        forecast_column,
+        exog_columns,
+        forecast_freq,
+        forceast_horizon,
+        forecast_metric,
+        forecast_function,
+        **kwargs
 ):
     rw = RollingWindow(
         dataframe,
@@ -32,7 +34,7 @@ def single_experiment(
         results = p.starmap(
             call_function_with_args_and_kwargs,
             (
-                (forecast_function, (train, test, forecast_column), kwargs)
+                (forecast_function, (train, test, forecast_column, exog_columns, forecast_freq), kwargs)
                 for train, test in rw
             ),
         )
