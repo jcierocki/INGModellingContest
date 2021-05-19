@@ -23,6 +23,8 @@ metric, fcst = garch(
     exog_col=["exog1", "exog2"]
 )
 
+# print(fcst.mean)
+
 # print(t1.head())
 # print(t2.head())
 # print(t3.head())

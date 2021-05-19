@@ -281,10 +281,13 @@ def garch(train, val, col, exog_col=None, eval_fun=evaluate, freq='M', ar_lag=2,
         o=0,
         q=q,
         power=2.0,
-        dist=dist
+        dist=dist,
+        rescale=True
     )
     res = mod.fit(options={'maxiter': 1000})
 
-    forecast = res.forecast(horizon=val_data.shape[0], x=forecast_data_exog.to_dict(orient='list'), reindex=True)
-    # return eval_fun(val_data, forecast), forecast
-    return None, forecast
+    forecast_arch = res.forecast(horizon=horizon, x=forecast_data_exog.to_dict(orient='list'), reindex=True)
+    forecast = pd.Series(forecast_arch.mean.iloc[-1, :])
+    forecast.index = val_data.index
+
+    return eval_fun(val_data, forecast), forecast
