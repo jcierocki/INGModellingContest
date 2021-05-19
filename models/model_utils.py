@@ -77,7 +77,7 @@ def evaluate_calibration(y_true, y_pred):
 
 
 def freq_convert(freq_str):
-    if freq_str == 'M':
+    if freq_str == 'M' or freq_str == 'MS':
         return 12
     elif freq_str == 'W':
         return 7
@@ -110,7 +110,7 @@ def prepare_data_prophet(train, val, col, exog_col=None):
 #         return None, None
 
 
-def prophet(train, val, col, exog_col=None, freq='M', eval_fun=evaluate):
+def prophet(train, val, col, exog_col=None, freq='MS', eval_fun=evaluate):
     train_data, val_data = prepare_data_prophet(train, val, col, exog_col)
 
     m = Prophet()
@@ -127,29 +127,36 @@ def prophet(train, val, col, exog_col=None, freq='M', eval_fun=evaluate):
                 (train_data[c].to_numpy(), val_data[c].to_numpy())
             )
 
-    # return None, future
-
     forecast = m.predict(future).tail(val_data.shape[0])["yhat"].values
     return eval_fun(val_data["y"].values, forecast), forecast
 
 
-def neural_prophet(train, val, col, exog_col=None, freq='M', eval_fun=evaluate):
-    train_data, val_data = prepare_data_prophet(train, val, col)
-
-    m = NeuralProphet()
-    if exog_col is not None:
-        for c in exog_col:
-            m.add_lagged_regressor(name=c)
-
-    m.fit(train_data, freq=freq)
-
-    future = m.make_future_dataframe(train_data, periods=val_data.shape[0])
-    if exog_col is not None:
-        for c in exog_col:
-            future[c] = val_data[c]
-
-    forecast = m.predict(future)["yhat1"].values
-    return eval_fun(val_data["y"].values, forecast), forecast
+# def neural_prophet(train, val, col, exog_col=None, freq='M', eval_fun=evaluate, ar_lag=2, ar_hidden_layers=1):
+#     train_data, val_data = prepare_data_prophet(train, val, col, exog_col)
+#
+#     m = NeuralProphet(n_forecasts=12, n_lags=ar_lag, num_hidden_layers=ar_hidden_layers)
+#     if exog_col is not None:
+#         for c in exog_col:
+#             m = m.add_future_regressor(name=c)
+#
+#     if freq == 'M':  # TODO temporary
+#         freq = 'MS'
+#
+#     m.fit(train_data, freq=freq)
+#
+#     future = m.make_future_dataframe(df=train_data, regressors_df=train_data[exog_col])
+#
+#     # print(future.shape[0])
+#     # if exog_col is not None:
+#     #     for c in exog_col:
+#     #         future[c] = np.concatenate(
+#     #             (train_data[c].to_numpy(), val_data[c].to_numpy())
+#     #         )
+#
+#     forecast = m.predict(future)["yhat1"].values
+#
+#     return None, forecast
+#     # return eval_fun(val_data["y"].values, forecast), forecast
 
 
 def tbats(
@@ -157,7 +164,7 @@ def tbats(
         val,
         col="org",
         exog_col=None,
-        freq='M',
+        freq='MS',
         eval_fun=evaluate,
         use_box_cox=False,
         use_trend=True,
@@ -170,11 +177,12 @@ def tbats(
     seasonal_periods = freq_convert(freq)
 
     estimator = TBATS(
-        seasonal_periods=seasonal_periods,
+        seasonal_periods=[seasonal_periods],
         use_box_cox=use_box_cox,
         use_trend=use_trend,
         use_damped_trend=use_damped_trend,
-        use_arma_errors=use_arma_errors
+        use_arma_errors=use_arma_errors,
+        n_jobs=1
     )
 
     fitted_model = estimator.fit(train_data.values)
@@ -196,7 +204,7 @@ def sarimax(
         P=0,
         D=0,
         Q=0,
-        freq='M',
+        freq='MS',
         use_boxcox=True,
 ):
     train_data = train.copy()
@@ -218,8 +226,9 @@ def sarimax(
         trend=trend,
         use_boxcox=use_boxcox,
         initialization_method="estimated",
+        freq=freq
     )
-    res = mod.fit(method='powell', maxiter=1000)
+    res = mod.fit(method='powell', maxiter=1000, disp=False)
 
     forecast = res.forecast(steps=val_data.shape[0], exog=xreg_fcst)
     return eval_fun(val_data[col], forecast), forecast
@@ -231,7 +240,7 @@ def ets(
         col="org",
         exog_col=None,
         eval_fun=evaluate,
-        freq='M',
+        freq='MS',
         error='add',
         trend='add',
         damped_trend=False,
@@ -250,6 +259,7 @@ def ets(
         damped_trend=damped_trend,
         seasonal=seasonal,
         seasonal_periods=seasonal_periods,
+        freq=freq,
         initialization_method="estimated",
     )
     res = mod.fit()
@@ -258,22 +268,23 @@ def ets(
     return eval_fun(val_data, forecast), forecast
 
 
-def var(train, val, col, exog_col=None, eval_fun=evaluate, freq='M', max_lags=None, trend='c'):
-    colnames = col + exog_col
+def var(train, val, col, exog_col=None, eval_fun=evaluate, freq='MS', max_lags=None, trend='c'):
+    if exog_col is None:
+        raise Exception
+
+    colnames = [col] + exog_col
 
     train_data = train[colnames].copy()
     val_data = val[colnames].copy()
 
-    # s = freq_convert(freq)
-
-    mod = VAR(endog=train_data, freq=freq)  # TODO check freq arg format
+    mod = VAR(endog=train_data, freq=freq)
     res = mod.fit(maxlags=max_lags, trend=trend)
 
-    forecast = res.forecast(steps=val_data.shape[0], y=train_data)  # TODO check if y arg filled properly
+    forecast = res.forecast(steps=val_data.shape[0], y=train_data.to_numpy())
     return eval_fun(val_data, forecast), forecast
 
 
-def garch(train, val, col, exog_col=None, eval_fun=evaluate, freq='M', ar_lag=2, p=1, q=1, dist="Normal"):
+def garch(train, val, col, exog_col=None, eval_fun=evaluate, freq='MS', ar_lag=2, p=1, q=1, dist="Normal"):
     train_data = train.copy()
     val_data = val.copy()
 

@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from model_utils import sarimax, garch, prophet
+from model_utils import sarimax, garch, prophet, ets, tbats, var
 
 HOR = 12
 
@@ -22,33 +22,33 @@ df_val = df.iloc[-HOR:, :]
 # print(df)
 # print(df_val)
 
-# metric_sarimax, fcst_sarimax = sarimax(
-#     train=df_train,
-#     val=df_val,
-#     col="consumption",
-#     exog_col=None
-# )
-#
-# metric_sarimax, fcst_sarimax = sarimax(
-#     train=df_train,
-#     val=df_val,
-#     col="consumption",
-#     exog_col=["exog1", "exog2"]
-# )
-#
-# metric_garch, fcst_garch = garch(
-#     train=df_train,
-#     val=df_val,
-#     col="consumption",
-#     exog_col=None
-# )
-#
-# metric_garch, fcst_garch = garch(
-#     train=df_train,
-#     val=df_val,
-#     col="consumption",
-#     exog_col=["exog1", "exog2"]
-# )
+metric_sarimax, fcst_sarimax = sarimax(
+    train=df_train,
+    val=df_val,
+    col="consumption",
+    exog_col=None
+)
+
+metric_sarimax, fcst_sarimax = sarimax(
+    train=df_train,
+    val=df_val,
+    col="consumption",
+    exog_col=["exog1", "exog2"]
+)
+
+metric_garch, fcst_garch = garch(
+    train=df_train,
+    val=df_val,
+    col="consumption",
+    exog_col=None
+)
+
+metric_garch, fcst_garch = garch(
+    train=df_train,
+    val=df_val,
+    col="consumption",
+    exog_col=["exog1", "exog2"]
+)
 
 metric_prophet, fcst_prophet = prophet(
     train=df_train,
@@ -64,3 +64,21 @@ metric_prophet, fcst_prophet = prophet(
     exog_col=["exog1", "exog2"]
 )
 
+metric_ets, fcst_ets = ets(
+    train=df_train,
+    val=df_val,
+    col="consumption"
+)
+
+metric_tbats, fcst_tbats = tbats(
+    train=df_train,
+    val=df_val,
+    col="consumption"
+)
+
+metric_var, fcst_var = var(
+    train=df_train,
+    val=df_val,
+    col="consumption",
+    exog_col=["exog1", "exog2"]
+)
