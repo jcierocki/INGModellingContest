@@ -101,6 +101,15 @@ def prepare_data_prophet(train, val, col, exog_col=None):
     return train_data, val_data
 
 
+def split_exog(df, cols, horizon):
+    if cols is not None:
+        exog_data = df[cols].copy()
+        split_idx = exog_data.shape[0] - horizon
+        return exog_data.iloc[:split_idx, :], exog_data.iloc[split_idx:, :]
+    else:
+        return None, None
+
+
 def prophet(train, val, col, exog_col=None, freq='M', eval_fun=evaluate):
     train_data, val_data = prepare_data_prophet(train, val, col)
 
@@ -165,12 +174,12 @@ def tbats(
 def sarimax(
         train,
         val,
-        col="org",
+        col,
         exog_col=None,
         eval_fun=evaluate,
-        p=2,
-        d=1,
-        q=2,
+        p=1,
+        d=0,
+        q=1,
         trend="c",
         P=0,
         D=0,
@@ -178,9 +187,14 @@ def sarimax(
         freq='M',
         use_boxcox=True,
 ):
-    train_data = train[col].copy()
-    train_data_exog = train[exog_col].copy()
+    horizon = val.shape[0]
+    train_data = train.copy()[col].iloc[horizon:]
     val_data = val[col].copy()
+
+    train_data_exog, forecast_data_exog = split_exog(train, exog_col, horizon)
+
+    train_data = train_data.reset_index(drop=True)
+    val_data.index = forecast_data_exog.index
 
     s = freq_convert(freq)
 
@@ -195,7 +209,7 @@ def sarimax(
     )
     res = mod.fit(method='powell', maxiter=1000)
 
-    forecast = res.forecast(steps=val_data.shape[0])
+    forecast = res.forecast(steps=horizon, exog=forecast_data_exog)
     return eval_fun(val_data, forecast), forecast
 
 
@@ -247,16 +261,21 @@ def var(train, val, col, exog_col=None, eval_fun=evaluate, freq='M', max_lags=No
     return eval_fun(val_data, forecast), forecast
 
 
-def garch(train, val, col, exog_col=None, eval_fun=evaluate, freq='M', p=1, q=1, dist="Normal"):
-    train_data = train[col].copy()
-    train_data_exog = train[exog_col].copy()
+def garch(train, val, col, exog_col=None, eval_fun=evaluate, freq='M', ar_lag=2, p=1, q=1, dist="Normal"):
+    horizon = val.shape[0]
+    train_data = train.copy()[col].iloc[horizon:]
     val_data = val[col].copy()
+
+    train_data_exog, forecast_data_exog = split_exog(train, exog_col, horizon)
+
+    train_data = train_data.reset_index(drop=True)
+    val_data.index = forecast_data_exog.index
 
     mod = arch_model(
         y=train_data,
-        # x=train_data_exog,  # TODO include exog regressors
-        mean="Constant",
-        lags=0,
+        x=train_data_exog,
+        lags=ar_lag,
+        mean="ARX",
         vol="Garch",
         p=p,
         o=0,
@@ -266,5 +285,6 @@ def garch(train, val, col, exog_col=None, eval_fun=evaluate, freq='M', p=1, q=1,
     )
     res = mod.fit(options={'maxiter': 1000})
 
-    forecast = res.forecast(horizon=val_data.shape[0])
-    return eval_fun(val_data, forecast), forecast
+    forecast = res.forecast(horizon=val_data.shape[0], x=forecast_data_exog.to_dict(orient='list'), reindex=True)
+    # return eval_fun(val_data, forecast), forecast
+    return None, forecast
