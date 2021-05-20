@@ -13,6 +13,7 @@ from statsmodels.tsa.exponential_smoothing.ets import ETSModel
 from tbats import TBATS
 from statsmodels.tsa.vector_ar.var_model import VAR
 from arch import arch_model
+from sklearn.linear_model import ElasticNet
 
 logger = logging.getLogger("fbprophet")
 logger.propagate = False
@@ -310,3 +311,25 @@ def garch(train, val, col, exog_col=None, freq='MS', eval_fun=evaluate, ar_lag=2
     forecast.index = val_data.index
 
     return eval_fun(val_data[col], forecast), forecast
+
+
+def elastic_net(train, val, resid, exog_col, col=None, eval_fun=evaluate, alpha=1.0, l1=0.5):
+    if resid is None or exog_col is None:
+        raise Exception
+
+    train_data = train[exog_col].copy()
+    val_data = val[exog_col].copy()
+
+    mod = ElasticNet(alpha=alpha, l1_ratio=l1)
+    res = mod.fit(X=train_data.to_numpy(), y=resid.to_numpy())
+    forecast = res.predict(val_data)
+
+    metrics = None
+    if col is not None:
+        metrics = eval_fun(val[col].values, forecast)
+
+    return metrics, forecast
+
+
+
+
