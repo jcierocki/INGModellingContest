@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from hyperopt_utils import single_experiment_hyperopt
-from model_utils import prophet, sarimax, var, ets
+from model_utils import prophet, sarimax, var, ets, garch
 from hyperopt import fmin, tpe, space_eval, hp
 
 from datetime import datetime
@@ -34,7 +34,7 @@ def main():
         "forecast_freq": hp.choice("forecast_freq", ["MS"]),
         "forceast_horizon": hp.choice("forceast_horizon", [6]),
         "forecast_metric": hp.choice("forecast_metric", ["mae"]),
-        "forecast_function": hp.choice("forecast_functions", [ets]),
+        "forecast_function": hp.choice("forecast_functions", [garch])
     }
 
     best = fmin(single_experiment_hyperopt, space, algo=tpe.suggest, max_evals=5)

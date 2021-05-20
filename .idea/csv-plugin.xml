@@ -17,6 +17,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/models/hyperopt_utils.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/models/hyperparameter_optimization.py">
           <value>
             <Attribute>
