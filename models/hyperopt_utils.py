@@ -3,6 +3,10 @@ import numpy as np
 from RollingWindow import RollingWindow
 
 
+def single_experiment_hyperopt(par):
+    return single_experiment(**par)
+
+
 def call_function_with_args_and_kwargs(f, args, kwargs):
     return f(*args, **kwargs)
 
@@ -12,6 +16,8 @@ def single_experiment(
         frequency,
         train_end,
         forecast_column,
+        exog_columns,
+        forecast_freq,
         forceast_horizon,
         forecast_metric,
         forecast_function,
@@ -28,7 +34,7 @@ def single_experiment(
         results = p.starmap(
             call_function_with_args_and_kwargs,
             (
-                (forecast_function, (train, test, forecast_column), kwargs)
+                (forecast_function, (train, test, forecast_column, exog_columns, forecast_freq), kwargs)
                 for train, test in rw
             ),
         )

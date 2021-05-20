@@ -13,10 +13,7 @@ from statsmodels.tsa.exponential_smoothing.ets import ETSModel
 from tbats import TBATS
 from statsmodels.tsa.vector_ar.var_model import VAR
 from arch import arch_model
-
-# logg = logging.getLogger(__name__)
-# fh = logging.FileHandler('logs.log')
-# logg.addHandler(fh)
+from sklearn.linear_model import ElasticNet
 
 logger = logging.getLogger("fbprophet")
 logger.propagate = False
@@ -196,6 +193,7 @@ def sarimax(
         val,
         col,
         exog_col=None,
+        freq='MS',
         eval_fun=evaluate,
         p=1,
         d=0,
@@ -204,7 +202,6 @@ def sarimax(
         P=0,
         D=0,
         Q=0,
-        freq='MS',
         use_boxcox=True,
 ):
     train_data = train.copy()
@@ -239,8 +236,8 @@ def ets(
         val,
         col="org",
         exog_col=None,
-        eval_fun=evaluate,
         freq='MS',
+        eval_fun=evaluate,
         error='add',
         trend='add',
         damped_trend=False,
@@ -268,7 +265,7 @@ def ets(
     return eval_fun(val_data, forecast), forecast
 
 
-def var(train, val, col, exog_col=None, eval_fun=evaluate, freq='MS', max_lags=None, trend='c'):
+def var(train, val, col, exog_col=None, freq='MS', eval_fun=evaluate, max_lags=None, trend='c'):
     if exog_col is None:
         raise Exception
 
@@ -284,7 +281,7 @@ def var(train, val, col, exog_col=None, eval_fun=evaluate, freq='MS', max_lags=N
     return eval_fun(val_data, forecast), forecast
 
 
-def garch(train, val, col, exog_col=None, eval_fun=evaluate, freq='MS', ar_lag=2, p=1, q=1, dist="Normal"):
+def garch(train, val, col, exog_col=None, freq='MS', eval_fun=evaluate, ar_lag=2, p=1, q=1, dist="Normal"):
     train_data = train.copy()
     val_data = val.copy()
 
@@ -314,3 +311,25 @@ def garch(train, val, col, exog_col=None, eval_fun=evaluate, freq='MS', ar_lag=2
     forecast.index = val_data.index
 
     return eval_fun(val_data[col], forecast), forecast
+
+
+def elastic_net(train, val, resid, exog_col, col=None, eval_fun=evaluate, alpha=1.0, l1=0.5):
+    if resid is None or exog_col is None:
+        raise Exception
+
+    train_data = train[exog_col].copy()
+    val_data = val[exog_col].copy()
+
+    mod = ElasticNet(alpha=alpha, l1_ratio=l1)
+    res = mod.fit(X=train_data.to_numpy(), y=resid.to_numpy())
+    forecast = res.predict(val_data)
+
+    metrics = None
+    if col is not None:
+        metrics = eval_fun(val[col].values, forecast)
+
+    return metrics, forecast
+
+
+
+
