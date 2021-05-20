@@ -19,6 +19,8 @@ darts = "==0.7.0"
 torch = "==1.8.1"
 grpcio = "==1.37.1"
 arch = "*"
+xlrd = "*"
+openpyxl = "*"
 
 [dev-packages]
 black = "*"
