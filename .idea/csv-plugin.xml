@@ -80,6 +80,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/notebooks/naive_models.ipynb">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/notebooks/task1.ipynb">
           <value>
             <Attribute>

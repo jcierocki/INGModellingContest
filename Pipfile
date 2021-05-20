@@ -21,6 +21,8 @@ grpcio = "==1.37.1"
 arch = "*"
 xlrd = "*"
 openpyxl = "*"
+lightgbm = "*"
+seaborn = "*"
 
 [dev-packages]
 black = "*"

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from fbprophet import Prophet
-from neuralprophet import NeuralProphet
+from statsmodels.tsa.exponential_smoothing.ets import ETSModel
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from statsmodels.tsa.exponential_smoothing.ets import ETSModel
 # from darts.metrics.metrics import mae, mase, mape, smape, rmse
@@ -210,8 +210,8 @@ def sarimax(
     xreg = None
     xreg_fcst = None
     if exog_col is not None:
-        xreg = train_data[exog_col]
-        xreg_fcst = val_data[exog_col]
+        xreg = train_data[list(exog_col)]
+        xreg_fcst = val_data[list(exog_col)]
 
     s = freq_convert(freq)
 
@@ -269,7 +269,7 @@ def var(train, val, col, exog_col=None, freq='MS', eval_fun=evaluate, max_lags=N
     if exog_col is None:
         raise Exception
 
-    colnames = [col] + exog_col
+    colnames = [col] + list(exog_col)
 
     train_data = train[colnames].copy()
     val_data = val[colnames].copy()
@@ -288,8 +288,8 @@ def garch(train, val, col, exog_col=None, freq='MS', eval_fun=evaluate, ar_lag=2
     xreg = None
     xreg_fcst = None
     if exog_col is not None:
-        xreg = train_data[exog_col]
-        xreg_fcst = val_data[exog_col].to_dict(orient='list')
+        xreg = train_data[list(exog_col)]
+        xreg_fcst = val_data[list(exog_col)].to_dict(orient='list')
 
     mod = arch_model(
         y=train_data[col],
@@ -317,8 +317,8 @@ def elastic_net(train, val, resid, exog_col, col=None, eval_fun=evaluate, alpha=
     if resid is None or exog_col is None:
         raise Exception
 
-    train_data = train[exog_col].copy()
-    val_data = val[exog_col].copy()
+    train_data = train[list(exog_col)].copy()
+    val_data = val[list(exog_col)].copy()
 
     mod = ElasticNet(alpha=alpha, l1_ratio=l1)
     res = mod.fit(X=train_data.to_numpy(), y=resid.to_numpy())

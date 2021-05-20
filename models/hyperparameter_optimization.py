@@ -40,7 +40,7 @@ def main():
     best = fmin(single_experiment_hyperopt, space, algo=tpe.suggest, max_evals=5)
     best_vals = space_eval(space, best)
     print(best)
-    print(best_vals)
+    #print(best_vals)
 
 
 if __name__ == "__main__":
